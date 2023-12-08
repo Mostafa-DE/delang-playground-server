@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 
 	"github.com/Mostafa-DE/delang/evaluator"
@@ -15,58 +13,33 @@ import (
 )
 
 func initAppRoutes() {
+	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/api/exec", codeExecHandler)
 	http.HandleFunc("/api/examples/", examplesHandler)
 }
 
-func examplesHandler(resW http.ResponseWriter, req *http.Request) {
-	pathname := req.URL.Path
-	exampleNumber := pathname[len("/api/examples/"):]
-
-	absPath, err := filepath.Abs(fmt.Sprintf("examples/%s.md", exampleNumber))
-	if err != nil {
-		fmt.Println("Error getting absolute path:", err)
-		json.NewEncoder(resW).Encode(map[string]string{
-			"error": "Something went wrong while getting the file, please try again later",
-		})
-		return
-	}
-
-	fileContents, err := ioutil.ReadFile(absPath)
-
-	if err != nil {
-		fmt.Println("Error reading file:", err)
-		json.NewEncoder(resW).Encode(map[string]string{
-			"error": "Something went wrong while getting the file, please try again later",
-		})
-		return
-	}
-
-	mds := string(fileContents)
-	html := mdToHTML([]byte(mds))
-
-	respose := map[string]string{
-		"html": string(html),
-	}
-
-	resW.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(resW).Encode(respose)
+func mainHandler(resW http.ResponseWriter, req *http.Request) {
+	http.Redirect(resW, req, "https://delang.mostafade.com", http.StatusMovedPermanently)
 }
 
 func codeExecHandler(resW http.ResponseWriter, req *http.Request) {
 	var res map[string]string
 
-	fileName := createFileToExecFromReqBody(req)
+	if req.Method != "POST" {
+		methodNotAllowedHandler(resW, req)
+		return
+	}
 
-	if fileName == "" {
+	returnObj := createFileToExecFromReqBody(req)
+	fileName := returnObj["fileName"]
+	errorMessage := returnObj["error"]
+
+	if errorMessage != "" {
 		res = map[string]string{
-			"error": "Something went wrong while executing the code",
+			"error": errorMessage,
 		}
 
-		os.Remove(fileName)
-
-		resW.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(resW).Encode(res)
+		jsonHandler(resW, req, res, fileName)
 
 		return
 	}
@@ -75,13 +48,10 @@ func codeExecHandler(resW http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		res = map[string]string{
-			"error": "Something went wrong while executing the code",
+			"error": errorMessage,
 		}
 
-		os.Remove(fileName)
-
-		resW.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(resW).Encode(res)
+		jsonHandler(resW, req, res, fileName)
 
 		return
 	}
@@ -95,12 +65,10 @@ func codeExecHandler(resW http.ResponseWriter, req *http.Request) {
 
 	if len(p.Errors()) != 0 {
 		res = map[string]string{
-			"error": p.Errors()[0],
+			"error": fmt.Sprintf("Parser errors: %s", p.Errors()[0]),
 		}
-		os.Remove(fileName)
 
-		resW.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(resW).Encode(res)
+		jsonHandler(resW, req, res, fileName)
 
 		return
 	}
@@ -116,13 +84,10 @@ func codeExecHandler(resW http.ResponseWriter, req *http.Request) {
 
 	if eval.Type() == object.ERROR_OBJ {
 		res = map[string]string{
-			"error": eval.Inspect(),
+			"error": fmt.Sprintf("Evaluation error: %s", eval.Inspect()),
 		}
 
-		os.Remove(fileName)
-
-		resW.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(resW).Encode(res)
+		jsonHandler(resW, req, res, fileName)
 
 		return
 	}
@@ -144,8 +109,49 @@ func codeExecHandler(resW http.ResponseWriter, req *http.Request) {
 		"timeout": fmt.Sprintf("%t", timeOutExceeded.(*object.Boolean).Value),
 	}
 
-	os.Remove(fileName)
+	jsonHandler(resW, req, res, fileName)
+}
 
-	resW.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(resW).Encode(res)
+func examplesHandler(resW http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		methodNotAllowedHandler(resW, req)
+		return
+	}
+
+	pathname := req.URL.Path
+	exampleNumber := pathname[len("/api/examples/"):]
+
+	absPath, err := filepath.Abs(fmt.Sprintf("examples/%s.md", exampleNumber))
+	if err != nil {
+		fmt.Println("Error getting absolute path:", err)
+		res := map[string]string{
+			"error": "Something went wrong while getting the file, please try again later",
+		}
+
+		jsonHandler(resW, req, res, "")
+
+		return
+	}
+
+	fileContents, err := ioutil.ReadFile(absPath)
+
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		res := map[string]string{
+			"error": "Something went wrong while reading the file, please try again later",
+		}
+
+		jsonHandler(resW, req, res, "")
+
+		return
+	}
+
+	mds := string(fileContents)
+	html := mdToHTML([]byte(mds))
+
+	respose := map[string]string{
+		"html": string(html),
+	}
+
+	jsonHandler(resW, req, respose, "")
 }

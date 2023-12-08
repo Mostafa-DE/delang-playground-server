@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func createFileToExecFromReqBody(req *http.Request) string {
+func createFileToExecFromReqBody(req *http.Request) map[string]string {
 	var buf bytes.Buffer
 
 	_, err := buf.ReadFrom(req.Body)
@@ -28,9 +28,14 @@ func createFileToExecFromReqBody(req *http.Request) string {
 
 	fileContents, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		fmt.Println("Failed to read the file:", err)
+		errMessage := fmt.Sprintf("Failed to read the file: %s", err)
+		fmt.Println(errMessage)
 		os.Remove(fileName)
-		return ""
+
+		return map[string]string{
+			"error":    errMessage,
+			"fileName": "",
+		}
 	}
 
 	fileContentString := string(fileContents)
@@ -38,12 +43,20 @@ func createFileToExecFromReqBody(req *http.Request) string {
 	ioutil.WriteFile(fileName, []byte(fileContentString), 0644)
 
 	if isFileEmpty(fileName) {
-		fmt.Println("Code is required")
+		errMessage := "Code is required"
+		fmt.Println(errMessage)
 		os.Remove(fileName)
-		return ""
+
+		return map[string]string{
+			"error":    errMessage,
+			"fileName": "",
+		}
 	}
 
-	return fileName
+	return map[string]string{
+		"error":    "",
+		"fileName": fileName,
+	}
 }
 
 func isFileEmpty(fileName string) bool {
@@ -73,13 +86,14 @@ func getPort() string {
 
 func enableCORS(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", " https://delang.mostafade.com/")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 		// Handle preflight requests (OPTIONS)
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
+
 			return
 		}
 

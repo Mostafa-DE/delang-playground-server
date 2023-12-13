@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/Mostafa-DE/delang/evaluator"
@@ -16,6 +18,7 @@ func initAppRoutes() {
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/api/exec", codeExecHandler)
 	http.HandleFunc("/api/examples/", examplesHandler)
+	http.HandleFunc("/api/de/ubuntu/de_install.sh", DEDownloadUbuntuHandler)
 }
 
 func mainHandler(resW http.ResponseWriter, req *http.Request) {
@@ -154,4 +157,28 @@ func examplesHandler(resW http.ResponseWriter, req *http.Request) {
 	}
 
 	jsonHandler(resW, req, respose, "")
+}
+
+func DEDownloadUbuntuHandler(resW http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		methodNotAllowedHandler(resW, req)
+		return
+	}
+
+	filePath := "./de.sh"
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		http.Error(resW, err.Error(), http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	resW.Header().Set("Content-Disposition", "attachment; filename=de_install.sh")
+
+	// Copy the file content to the response writer
+	_, err = io.Copy(resW, file)
+	if err != nil {
+		http.Error(resW, err.Error(), http.StatusInternalServerError)
+	}
 }

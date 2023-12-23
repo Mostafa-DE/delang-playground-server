@@ -9,12 +9,10 @@ install_go() {
     wget https://dl.google.com/go/go1.18.linux-amd64.tar.gz
     sudo tar -xvf go1.18.linux-amd64.tar.gz
     sudo mv go /usr/local
+    rm go1.18.linux-amd64.tar.gz
 
     echo "export GOROOT=/usr/local/go" >> ~/.profile
     echo "export PATH=\$PATH:\$GOROOT/bin" >> ~/.profile
-
-    export GOROOT=/usr/local/go
-    export PATH=$PATH:$GOROOT/bin
 }
 
 install_de() {
@@ -90,6 +88,8 @@ else
     update_shell_profile
 
 fi
+
+rm de.sh
 
 echo -e "\033[32mInstallation complete. Please restart your terminal or run 'source $shell_profile' to apply changes.\033[0m"
 

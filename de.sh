@@ -47,32 +47,41 @@ update_shell_profile() {
     fi
 
     # Append the de() function to the shell profile
-    cat << 'EOF' >> "$shell_profile"
-
+    cat << 'EOF' >> "$HOME/de"
+#!/bin/bash
 de() {
+    local delang_dir="$HOME/delang"
     local curr_dir="$PWD"
+
+    finish() {
+        cd "$curr_dir"
+    }
+
+    trap finish EXIT
+
     if [ -z "$1" ]; then
         # No file name provided, enter the REPL
-        cd ~/delang/ && go run main.go && cd "$curr_dir"
+        cd "$delang_dir"
+        go run main.go
     else
         local file_name="$1"
-        if [[ $file_name == /* ]]; then
-            local full_file_path="$file_name"
-        else
-            local file_dir="$PWD"
-            local full_file_path="$file_dir/$file_name"
-        fi
-        cd ~/delang/ && go run main.go "$full_file_path" && cd "$curr_dir"
-    fi
-}
-EOF
-}
 
-# Check if Go is installed, if not, install it
-if ! command -v go &> /dev/null; then
-    echo "Go is not installed. Installing Go..."
-    install_go
-fi
+        if [[ $file_name != /* ]]; then
+            file_name="$PWD/$file_name"
+        fi
+
+        cd "$delang_dir"
+        go run main.go "$file_name"
+    fi
+
+    finish
+}
+de "$@"
+EOF
+
+chmod +x "$HOME/de"
+sudo mv "$HOME/de" /usr/local/bin/
+}
 
 if [ -d "$HOME/delang" ]; then
     echo "Delang is already installed in your machine under $HOME/delang"
@@ -87,6 +96,12 @@ else
     echo "Updating Shell Profile"
     update_shell_profile
 
+fi
+
+# Check if Go is installed, if not, install it
+if ! command -v go &> /dev/null; then
+    echo "Go is not installed. Installing Go..."
+    install_go
 fi
 
 rm de_install.sh

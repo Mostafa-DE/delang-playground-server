@@ -89,7 +89,7 @@ else
 
 fi
 
-rm de.sh
+rm de_install.sh
 
 echo -e "\033[32mInstallation complete. Please restart your terminal or run 'source $shell_profile' to apply changes.\033[0m"
 

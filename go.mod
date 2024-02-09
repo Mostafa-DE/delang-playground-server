@@ -3,7 +3,7 @@ module server
 go 1.18
 
 require (
-	github.com/Mostafa-DE/delang v0.0.9
+	github.com/Mostafa-DE/delang v0.0.12
 	github.com/gomarkdown/markdown v0.0.0-20231115200524-a660076da3fd
 	github.com/google/uuid v1.4.0
 )

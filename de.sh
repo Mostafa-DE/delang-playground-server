@@ -6,7 +6,7 @@ install_pre_dependencies() {
 }
 
 install_go() {
-    wget https://dl.google.com/go/go1.18.linux-amd64.tar.gz
+    wget https://dl.google.com/go/go1.22.3.linux-amd64.tar.gz
     sudo tar -xvf go1.18.linux-amd64.tar.gz
     sudo mv go /usr/local
     rm go1.18.linux-amd64.tar.gz

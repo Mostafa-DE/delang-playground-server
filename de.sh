@@ -6,10 +6,11 @@ install_pre_dependencies() {
 }
 
 install_go() {
-    wget https://dl.google.com/go/go1.22.3.linux-amd64.tar.gz
-    sudo tar -xvf go1.18.linux-amd64.tar.gz
+    GO_VERSION="1.22.3"
+    wget https://dl.google.com/go/go$GO_VERSION.linux-amd64.tar.gz
+    sudo tar -xvf go$GO_VERSION.linux-amd64.tar.gz
     sudo mv go /usr/local
-    rm go1.18.linux-amd64.tar.gz
+    rm go$GO_VERSION.linux-amd64.tar.gz
 
     echo "export GOROOT=/usr/local/go" >> ~/.profile
     echo "export PATH=\$PATH:\$GOROOT/bin" >> ~/.profile
